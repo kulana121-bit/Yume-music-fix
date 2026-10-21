@@ -1,0 +1,48 @@
+
+name: Build YumaPlayer APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract project ZIP
+        run: |
+          mkdir source
+          unzip YumaPlayer-source.zip -d source
+          find source -name gradlew -type f
+
+      - name: Locate project
+        run: |
+          GRADLEW=$(find source -name gradlew -type f | head -n 1)
+          test -n "$GRADLEW"
+          echo "PROJECT_DIR=$(dirname "$GRADLEW")" >> "$GITHUB_ENV"
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Build APK
+        run: |
+          cd "$PROJECT_DIR"
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: YumaPlayer-Debug-APK
+          path: source/**/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 7
